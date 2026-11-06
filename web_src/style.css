@@ -1,0 +1,1604 @@
+/* ============================================================================
+ * File     : web_src/style.css
+ * Project  : ESP32 HD - UDS Diagnostic Service Tester Stylesheet
+ * Copyright: (c) 2026 Henzulea Daniel email: <zulea1@gmail.com>
+ * License  : GNU General Public License v3.0 or later (GPL-3.0-or-later) - see LICENSE
+ * Theme    : HD Black, Dark Grey & Racing Orange
+ * ============================================================================ */
+
+:root {
+  /* Core HD Black & Dark Grey Palette */
+  --bg-app: #07070a;
+  --bg-card: #121316;
+  --bg-card-hover: #191b20;
+  --bg-inner: #0b0c0e;
+  --border-main: #232429;
+  --border-light: #383b44;
+  --border-hairline: rgba(255, 255, 255, 0.055);
+  --border-orange: rgba(255, 102, 0, 0.45);
+
+  /* HD Signature Orange - reserved for signal (active / selected / primary), not decoration */
+  --hd-orange: #ff6600;
+  --hd-orange-bright: #ff7a1a;
+  --hd-orange-dark: #e65500;
+  --hd-orange-glow: rgba(255, 102, 0, 0.18);
+  --hd-orange-soft: rgba(255, 102, 0, 0.12);
+  --hd-orange-idle: rgba(255, 102, 0, 0.3);   /* resting-state hint, before interaction */
+
+  /* Status Accents */
+  --emerald: #10b981;
+  --emerald-glow: rgba(16, 185, 129, 0.18);
+  --amber: #f59e0b;
+  --rose: #f43f5e;
+  --sky: #ff8533;
+  --indigo: #ff6600;
+
+  /* Typography */
+  --text-primary: #f8fafc;
+  --text-secondary: #d4d4d8;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Typeface: the system UI stack only, deliberately - this page ships inside firmware flash on a device
+ * with no reliable internet in the field, so a webfont is a cost with no fallback. Numeric/address/status
+ * readouts use the monospace face throughout, standing in for an instrument/terminal typeface.
+ */
+body {
+  background-color: var(--bg-app);
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(255, 102, 0, 0.09) 0%, transparent 55%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.015) 0, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 28px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 28px);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-feature-settings: "tnum" 1;
+}
+
+.app-shell {
+  max-width: 840px;
+  width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  box-sizing: border-box;
+}
+/* On a desktop window or a wide/landscape mobile screen there's room to spare - let the shell spread out
+   instead of staying phone-width with a wall of empty space on each side. Capped (not 100vw) so text lines
+   and tables don't stretch to an unreadable width on an ultra-wide monitor. */
+@media (min-width: 900px) {
+  .app-shell { max-width: min(96vw, 1200px); }
+}
+@media (min-width: 1300px) {
+  .app-shell { max-width: min(92vw, 1500px); }
+}
+@media (min-width: 1700px) {
+  .app-shell { max-width: 1680px; }
+}
+
+/* Visible keyboard focus everywhere (buttons, inputs, selects, cards) - orange ring, 2px offset so it
+   never fights with a card's own border. */
+:focus-visible {
+  outline: 2px solid var(--hd-orange);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Thin orange scrollbar on the dark track - a small instrument-panel touch (WebKit + Firefox) */
+* { scrollbar-width: thin; scrollbar-color: var(--hd-orange-idle) var(--bg-inner); }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: var(--bg-inner); }
+*::-webkit-scrollbar-thumb { background: var(--hd-orange-idle); border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--hd-orange); }
+
+@media (prefers-reduced-motion: reduce) {
+  *:not(.actuator-spinner), *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Top App Header: HD Black & Orange Bar with Emblem
+ * ---------------------------------------------------------------------------- */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(8, 8, 10, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-hairline);
+  box-shadow: 0 1px 0 rgba(255, 102, 0, 0.35), 0 4px 20px rgba(0, 0, 0, 0.65);
+  padding: 7px 14px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+
+/* Three-zone header, all pinned to the 36px height of the icon buttons: buttons left, the
+   brand stack centered, link status + firmware build right. */
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Three-line brand stack, centered between the buttons and the status readout: brand name on
+   top a little larger, attribution and contact quiet underneath. */
+.header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 36px;
+  overflow: hidden;
+}
+.header-brand-line {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 14px;
+  white-space: nowrap;
+}
+.brand-esp { color: var(--text-primary); }
+.brand-hd { color: var(--hd-orange); }
+.bottom-copyright-text {
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 9px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.bottom-email-text {
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 9px;
+  color: var(--text-muted);
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+/* Link status + firmware build: a quiet three-line readout right-aligned at the far edge,
+   matching the buttons' 36px height - mode on top, signal strength, then version/build. */
+.header-status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+  height: 36px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.bottom-wifi-mode-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 11px;
+  color: var(--hd-orange);
+  letter-spacing: 0.02em;
+}
+.bottom-wifi-signal-line {
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 10px;
+  color: var(--text-muted);
+}
+
+/* Unified Compact Icon Button (Black / Dark Grey + Orange) */
+.btn-icon-compact {
+  background: linear-gradient(180deg, #1b1c21 0%, #101114 100%);
+  border: 1px solid var(--border-orange);
+  color: var(--hd-orange);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.btn-icon-compact:hover {
+  background: linear-gradient(180deg, #24262d 0%, #16171c 100%);
+  border-color: var(--hd-orange);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 102, 0, 0.28);
+}
+.btn-icon-compact:active {
+  transform: scale(0.95);
+}
+
+/* ----------------------------------------------------------------------------
+ * Views Container
+ * ---------------------------------------------------------------------------- */
+.view-screen {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.view-screen.hidden {
+  display: none;
+}
+
+/* ----------------------------------------------------------------------------
+ * Unified Button System: Black, Dark Grey & HD Orange
+ * Used consistently across Main Screen, Operations, Settings & Safe Boot
+ * ---------------------------------------------------------------------------- */
+.btn,
+.btn-scan,
+.btn-back,
+.btn-action-primary {
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn:active,
+.btn-scan:active,
+.btn-back:active,
+.btn-action-primary:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled,
+.btn-action-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Primary Button: Signature HD Orange with Deep Black Typography */
+.btn-primary,
+.btn-action-primary {
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #ff7714 0%, #f25c00 100%);
+  color: #070708;
+  border: 1px solid #ff8833;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(255, 102, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.btn-primary:hover,
+.btn-action-primary:hover {
+  background: linear-gradient(180deg, #ff852b 0%, #ff6600 100%);
+  box-shadow: 0 6px 18px rgba(255, 102, 0, 0.4);
+}
+
+/* Secondary Button: Dark Grey / Black Carbon with HD Orange Border & Accent */
+.btn-secondary,
+.btn-back {
+  padding: 9px 14px;
+  background: linear-gradient(180deg, #1c1d22 0%, #111216 100%);
+  border: 1px solid rgba(255, 102, 0, 0.4);
+  color: #f4f4f5;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.btn-secondary:hover,
+.btn-back:hover {
+  background: linear-gradient(180deg, #25272e 0%, #17191f 100%);
+  border-color: var(--hd-orange);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 102, 0, 0.22);
+}
+
+/* Danger / Reset Button: Dark Charcoal with Intense Orange-Red Trim */
+.btn-danger {
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #261414 0%, #160b0b 100%);
+  border: 1px solid rgba(255, 102, 0, 0.65);
+  color: #ff8533;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.btn-danger:hover {
+  background: linear-gradient(180deg, #ff6600 0%, #d9460f 100%);
+  border-color: #ff944d;
+  color: #070708;
+}
+
+/* Diagnostic Trouble Codes page: "Read Again" + "Clear" side by side, equal width, equal height. A plain
+ * dedicated flex row - not .scan-actions-row, which a later unconditional rule turns into a fixed 3-column
+ * grid for the home screen's Search/Scan DTC/Display All row and would misalign a 2-button row reusing it. */
+.dtc-actions-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.dtc-actions-row > .btn-action-primary,
+.dtc-actions-row > .btn-danger {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+}
+
+/* ----------------------------------------------------------------------------
+ * Scan Action Buttons Row: Search & Display All
+ * ---------------------------------------------------------------------------- */
+.scan-actions-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-scan.hidden {
+  display: none;
+}
+.btn-scan {
+  flex: 1;
+  padding: 11px 14px;
+  font-size: 13px;
+  background: linear-gradient(180deg, #1a1b20 0%, #101114 100%);
+  border: 1px solid var(--border-main);
+  color: var(--text-secondary);
+}
+.btn-scan:hover {
+  background: linear-gradient(180deg, #22242b 0%, #15171c 100%);
+  border-color: var(--border-orange);
+  color: #ffffff;
+}
+.btn-scan.active {
+  background: linear-gradient(180deg, #ff7714 0%, #e65500 100%);
+  border-color: #ff944d;
+  color: #070708;
+  box-shadow: 0 4px 14px rgba(255, 102, 0, 0.3);
+}
+
+/* Empty State Box */
+.empty-state-box {
+  padding: 30px 20px;
+  text-align: center;
+  border: 1px dashed #2e3038;
+  border-radius: var(--radius-lg);
+  background: rgba(18, 19, 22, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.empty-state-box.hidden {
+  display: none;
+}
+.empty-icon-pulse {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 102, 0, 0.14);
+  border: 1px solid rgba(255, 102, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty-text {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  max-width: 340px;
+  line-height: 1.5;
+}
+.empty-text strong {
+  color: var(--hd-orange);
+}
+
+/* ----------------------------------------------------------------------------
+ * Modules List Grid & Cards (Black/Dark-Grey + HD Orange Trim)
+ * ---------------------------------------------------------------------------- */
+.modules-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.modules-grid.hidden {
+  display: none;
+}
+
+.module-card {
+  padding: 12px 15px;
+  background: linear-gradient(180deg, #18191e 0%, #101114 100%);
+  border: 1px solid var(--border-main);
+  border-left: 3px solid var(--hd-orange-idle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  min-height: 52px;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease), box-shadow 0.15s var(--ease), transform 0.1s var(--ease);
+}
+.module-card:hover,
+.module-card:focus-visible {
+  background: linear-gradient(180deg, #21232a 0%, #15171c 100%);
+  border-color: var(--hd-orange);
+  box-shadow: 0 4px 14px rgba(255, 102, 0, 0.16);
+}
+.module-card:active {
+  transform: scale(0.985);
+  border-color: var(--hd-orange);
+}
+
+.card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-name-line {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-arrow {
+  color: var(--hd-orange);
+  display: flex;
+  align-items: center;
+}
+
+/* DTC Count Badge displayed directly on Module Buttons */
+.dtc-count-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.dtc-count-badge.has-dtc {
+  background: linear-gradient(180deg, #ff7714 0%, #e65500 100%);
+  color: #070708;
+  border: 1px solid #ff944d;
+  box-shadow: 0 2px 8px rgba(255, 102, 0, 0.35);
+}
+.dtc-count-badge.clean-dtc {
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.dtc-count-badge.scanning-dtc {
+  background: rgba(255, 102, 0, 0.14);
+  color: #ff944d;
+  border: 1px solid rgba(255, 102, 0, 0.4);
+}
+
+.input-dark {
+  background: #08080a;
+  border: 1px solid var(--border-main);
+  color: #ffffff;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: ui-monospace, monospace;
+  border-radius: var(--radius-sm);
+  flex: 1;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-dark:focus {
+  border-color: var(--hd-orange);
+  box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.18);
+}
+/* Force the Boost value field dark gray in every state (some browsers/password managers paint text inputs
+   white on focus/autofill); covers normal, focus and autofill so it never renders light. */
+#spc-boost-val,
+#spc-boost-val:focus,
+#spc-boost-val:autofill,
+#spc-boost-val:-webkit-autofill,
+#spc-boost-val:-webkit-autofill:focus {
+  background-color: #1a1a1c !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0 1000px #1a1a1c inset !important;
+  box-shadow: 0 0 0 1000px #1a1a1c inset !important;
+  caret-color: #ffffff;
+}
+#spc-boost-val:focus {
+  box-shadow: 0 0 0 1000px #1a1a1c inset, 0 0 0 2px rgba(255, 102, 0, 0.18) !important;
+}
+/* Browsers paint autofilled inputs with a light background that overrides the dark one above; force the field
+   to stay dark (keeps the Boost value field and any other input-dark field from ever going white). Covers
+   WebKit/Chrome (box-shadow inset trick) and Firefox (:autofill + background-color), both with !important. */
+input.input-dark:autofill,
+input.input-dark:-webkit-autofill,
+input.input-dark:-webkit-autofill:hover,
+input.input-dark:-webkit-autofill:focus,
+input.input-dark:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #08080a inset !important;
+  box-shadow: 0 0 0 1000px #08080a inset !important;
+  background-color: #08080a !important;
+  background-image: none !important;
+  filter: none !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+/* Idle-speed (and similar) touch stepper: big -/+ buttons flanking the value input */
+.spc-stepper { display: flex; align-items: stretch; gap: 8px; margin-top: 4px; }
+.spc-stepper .input-dark { text-align: center; flex: 1 1 auto; min-width: 0; min-height: 44px; font-size: 16px; }
+.spc-step-btn { flex: 0 0 48px; min-width: 48px; min-height: 44px; font-size: 22px; line-height: 1; font-weight: 700; padding: 0; display: flex; align-items: center; justify-content: center; }
+
+/* ----------------------------------------------------------------------------
+ * Header status info: AP/STA, (c) Henzulea Daniel & Version/Build
+ * (moved from the main screen's bottom bar into the top header - see index.html)
+ * ---------------------------------------------------------------------------- */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hd-orange);
+  box-shadow: 0 0 6px var(--hd-orange);
+}
+
+.bottom-version-text {
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 10px;
+  color: var(--hd-orange);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------------------
+ * Active Module Bar (Clean: Back button & Module Abbreviation)
+ * ---------------------------------------------------------------------------- */
+.module-active-bar {
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #17181d 0%, #101114 100%);
+  border: 1px solid var(--border-main);
+  border-left: 3px solid var(--hd-orange);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 56px;
+}
+
+.module-title-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+}
+
+.active-mod-abbr {
+  font-size: 15.5px;
+  font-weight: 900;
+  color: var(--hd-orange);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+/* Operation sub-page header title (e.g. "Read ECU Information", "Diagnostic Trouble Codes") - same slot and
+ * markup as .active-mod-abbr (the dashboard's big orange module acronym) but its own class, so it can be
+ * styled smaller and white without changing that acronym on the dashboard. */
+.op-page-title-text {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.2;
+  text-align: center;
+  max-width: 100%;
+}
+
+.active-mod-desc {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Same narrow balancing spacer on every module-active-bar (dashboard AND the operation sub-page header) -
+   gives most of the header's width back to the centered title box, same as the dashboard's own bar. */
+.header-action-spacer {
+  width: 20px;
+}
+
+/* ----------------------------------------------------------------------------
+ * The 6 Operations Grid (Unified Black/Dark-Grey + HD Orange Buttons)
+ * ---------------------------------------------------------------------------- */
+.operations-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.op-button {
+  position: relative;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #18191e 0%, #101114 100%);
+  border: 1px solid var(--border-main);
+  border-left: 3px solid var(--hd-orange-idle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  min-height: 56px;
+  text-align: left;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease), box-shadow 0.15s var(--ease), transform 0.1s var(--ease);
+}
+.op-button:hover,
+.op-button:focus-visible {
+  background: linear-gradient(180deg, #22242b 0%, #15171c 100%);
+  border-color: var(--hd-orange);
+  box-shadow: 0 4px 14px rgba(255, 102, 0, 0.18);
+}
+.op-button.hidden {
+  display: none;
+}
+.op-button:active {
+  transform: scale(0.985);
+  border-color: var(--hd-orange);
+}
+
+.op-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 102, 0, 0.12);
+  border: 1px solid rgba(255, 102, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--hd-orange);
+}
+
+.op-text-wrap {
+  flex: 1;
+}
+
+.op-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* ----------------------------------------------------------------------------
+ * Operation Sub-Page Content Area
+ * ---------------------------------------------------------------------------- */
+.op-content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.results-card {
+  background: linear-gradient(180deg, #15161b 0%, #0e0f12 100%);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.results-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-main);
+}
+
+.results-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--hd-orange);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ECU Info 2-Column Table */
+.ecu-table-wrap {
+  width: 100%;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-inner);
+  margin-bottom: 4px;
+}
+.ecu-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ecu-info-table tr {
+  border-bottom: 1px solid var(--border-main);
+}
+.ecu-info-table tr:last-child {
+  border-bottom: none;
+}
+.ecu-desc-cell {
+  padding: 10px 14px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  width: 38%;
+  background: #101115;
+  border-right: 1px solid var(--border-main);
+  white-space: nowrap;
+}
+.ecu-val-cell {
+  padding: 8px 12px;
+}
+.input-table {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--hd-orange);
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* DTC Code Block */
+.dtc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dtc-item-card {
+  padding: 10px 12px;
+  background: var(--bg-inner);
+  border: 1px solid var(--border-main);
+  border-left: 3px solid var(--hd-orange);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dtc-code-tag {
+  font-family: ui-monospace, monospace;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #08080a;
+  background: var(--hd-orange);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.dtc-details {
+  flex: 1;
+  min-width: 0;
+}
+.dtc-desc {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.dtc-status-line {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Common Utilities & Icons */
+.icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.icon-sm { width: 16px; height: 16px; }
+.icon-lg { width: 24px; height: 24px; }
+.icon-xl { width: 36px; height: 36px; }
+.text-orange { color: var(--hd-orange); }
+.text-emerald { color: var(--emerald); }
+.text-amber { color: var(--amber); }
+.text-rose { color: var(--rose); }
+.text-sky { color: var(--hd-orange); }
+.text-indigo { color: var(--hd-orange); }
+
+/* Modals & Dialogs */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 50;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-backdrop.show {
+  display: flex;
+}
+.modal-box {
+  background: #121317;
+  border: 1px solid var(--border-orange);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 440px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.85);
+}
+.modal-box-lg {
+  max-width: 480px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+}
+.modal-header-line {
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #1b1c22 0%, #101115 100%);
+  border-bottom: 1px solid rgba(255, 102, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.modal-title-wrap h3 {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+.icon-hd {
+  width: 18px;
+  height: 18px;
+  color: var(--hd-orange);
+}
+.btn-close-sm {
+  background: #1a1b20;
+  border: 1px solid var(--border-orange);
+  color: var(--hd-orange);
+  font-size: 20px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-close-sm:hover {
+  color: #08080a;
+  background: var(--hd-orange);
+}
+.modal-body-scroll {
+  padding: 18px;
+  max-height: calc(88vh - 56px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.field-item label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--hd-orange);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.input-duo {
+  display: flex;
+  gap: 8px;
+}
+.flex-1 {
+  flex: 1;
+}
+.settings-actions-row {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+}
+.modal-divider {
+  border: none;
+  border-top: 1px solid var(--border-main);
+  margin: 4px 0;
+}
+.system-maintenance-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.maint-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.confirm-modal-message {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #e5e5e5;
+  white-space: pre-line;
+}
+/* Used for confirm dialogs built with explicit <br> line breaks (isHtml=true in hdConfirm) that want every
+   phrase centered, e.g. the firmware-update confirmation. */
+.confirm-modal-centered {
+  text-align: center;
+}
+/* Makes a flashed firmware file name stand out from the surrounding confirm-dialog prose. */
+.confirm-fw-name {
+  font-family: 'Courier New', ui-monospace, Consolas, monospace;
+  color: var(--hd-orange);
+  font-weight: 700;
+}
+
+/* ESP32 System Status Modal (Modeled on Safe Boot Web UI) */
+.modal-box-xl {
+  max-width: 680px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border: 2px solid var(--hd-orange);
+}
+.status-modal-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.status-pill-orange {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--hd-orange);
+  color: #08080a;
+  border: 1px solid #ff8533;
+}
+.status-pill-dark {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #1a1b20;
+  color: var(--hd-orange);
+  border: 1px solid var(--border-orange);
+}
+.status-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-xs {
+  padding: 6px 10px;
+  font-size: 11.5px;
+}
+.status-diag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 10px;
+}
+.status-diag-card {
+  padding: 12px;
+  background: var(--bg-inner);
+  border: 1px solid var(--border-main);
+  border-top: 2px solid var(--hd-orange);
+  border-radius: var(--radius-md);
+}
+.status-diag-head {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.status-diag-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  font-family: ui-monospace, monospace;
+  color: var(--hd-orange);
+}
+.status-diag-sub1 {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--text-muted);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status-diag-sub1 strong {
+  color: #ffffff;
+}
+.status-diag-sub2 {
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+  color: var(--text-dim);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status-section-card {
+  padding: 14px 16px;
+  background: var(--bg-inner);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-md);
+}
+.status-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.status-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+.status-pinout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 6px 14px;
+  padding: 10px 12px;
+  background: #101115;
+  border: 1px solid var(--border-main);
+  border-radius: 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+.status-pinout-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed #26282e;
+  padding-bottom: 4px;
+}
+.status-pinout-item span.lbl {
+  color: var(--text-muted);
+}
+.status-pinout-item span.val {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ----------------------------------------------------------------------------
+ * ECM Read Module Inputs (DID 0x0200 - 36 Live Telemetry Parameters)
+ * Left-aligned parameter names, right-aligned status values & units
+ * ---------------------------------------------------------------------------- */
+.ecm-telemetry-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Module Inputs toolbar: Read Now + Pause/Resume grouped on the left, LIVE/PAUSED badge pinned to the right -
+ * on its own line when the title above doesn't leave room, spanning the card either way (flex:1, not a fixed
+ * width, so it still shares the row with the title on screens wide enough to fit both). */
+.inputs-toolbar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.inputs-toolbar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ecm-stream-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.ecm-stream-badge.paused {
+  background: rgba(255, 102, 0, 0.14);
+  color: var(--hd-orange);
+  border-color: rgba(255, 102, 0, 0.4);
+}
+.ecm-stream-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+.ecm-stream-badge.paused .ecm-stream-dot {
+  background: var(--hd-orange);
+  box-shadow: 0 0 8px var(--hd-orange);
+}
+
+.ecm-inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+@media (min-width: 640px) {
+  .ecm-inputs-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 10px;
+  }
+}
+
+.ecm-input-row {
+  padding: 9px 12px;
+  background: var(--bg-inner);
+  border: 1px solid var(--border-main);
+  border-left: 3px solid var(--hd-orange-idle);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ecm-input-row:hover {
+  background: #13151a;
+  border-color: rgba(255, 102, 0, 0.55);
+}
+
+.ecm-input-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: left;
+  line-height: 1.3;
+}
+
+.ecm-input-val-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 5px;
+  text-align: right;
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ecm-input-value {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #10b981;
+}
+.ecm-input-value.val-orange {
+  color: var(--hd-orange);
+}
+
+.ecm-input-unit {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--hd-orange);
+}
+
+.ecm-state-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.03em;
+}
+.ecm-state-pill.state-green {
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.ecm-state-pill.state-orange {
+  background: rgba(255, 102, 0, 0.16);
+  color: #ff8533;
+  border: 1px solid rgba(255, 102, 0, 0.45);
+}
+.ecm-state-pill.state-red {
+  background: rgba(244, 63, 94, 0.16);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+}
+
+/* ----------------------------------------------------------------------------
+ * ECM Set Module Outputs: OUTPUT ACTUATOR TESTS (UDS Service 0x2F over 0x7E0)
+ * ---------------------------------------------------------------------------- */
+.actuator-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actuator-row-card {
+  padding: 12px 14px;
+  background: var(--bg-inner);
+  border: 1px solid var(--border-main);
+  border-left: 3px solid var(--hd-orange);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.actuator-row-card.is-active {
+  background: rgba(255, 102, 0, 0.08);
+  border-color: var(--hd-orange);
+  box-shadow: 0 0 14px rgba(255, 102, 0, 0.18);
+}
+.actuator-row-card.is-error {
+  border-left-color: var(--rose);
+  border-color: rgba(244, 63, 94, 0.45);
+}
+
+.actuator-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.actuator-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.actuator-meta-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.actuator-meta-line .did-tag {
+  color: var(--hd-orange);
+  font-weight: 700;
+}
+
+.actuator-actions-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-actuator {
+  min-width: 116px;
+  padding: 9px 14px;
+  background: linear-gradient(180deg, #1c1d22 0%, #111216 100%);
+  border: 1px solid rgba(255, 102, 0, 0.45);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 800;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.15s ease;
+}
+.btn-actuator:hover:not(:disabled) {
+  background: linear-gradient(180deg, #25272e 0%, #17191f 100%);
+  border-color: var(--hd-orange);
+  box-shadow: 0 0 12px rgba(255, 102, 0, 0.25);
+}
+.btn-actuator.active-on {
+  background: linear-gradient(180deg, #ff7714 0%, #e65500 100%);
+  border-color: #ff944d;
+  color: #070708;
+  box-shadow: 0 4px 14px rgba(255, 102, 0, 0.35);
+}
+.btn-actuator:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@keyframes hdSpin {
+  to { transform: rotate(360deg); }
+}
+.actuator-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 102, 0, 0.3);
+  border-top-color: var(--hd-orange);
+  border-radius: 50%;
+  animation: hdSpin 0.65s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+/* Large rotating spinner shown while Searching for modules / Scanning DTCs. */
+.scan-spinner {
+  width: 46px;
+  height: 46px;
+  border: 4px solid rgba(255, 102, 0, 0.18);
+  border-top-color: var(--hd-orange);
+  border-radius: 50%;
+  animation: hdSpin 0.8s linear infinite;
+  margin: 0 auto 4px;
+}
+.btn-actuator.active-on .actuator-spinner {
+  border-color: rgba(7, 7, 8, 0.25);
+  border-top-color: #070708;
+}
+
+.actuator-banner {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.actuator-banner.hidden {
+  display: none;
+}
+.actuator-banner.banner-timeout,
+.actuator-banner.banner-error {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  color: #fb7185;
+}
+.actuator-banner.banner-battery {
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  color: #fcd34d;
+}
+.actuator-banner.banner-ok {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+.actuator-banner.banner-warn {
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  color: #fcd34d;
+}
+.actuator-banner.banner-neutral {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: #94a3b8;
+}
+
+
+
+/* ECM special functions */
+.spc-hint { font-size: 0.8rem; opacity: 0.75; margin: 4px 0; line-height: 1.35; }
+/* Settings modal subsection wrapper */
+.seckey-settings-section { margin-top: 4px; }
+.settings-subhead { margin: 2px 0 8px; font-size: 14px; font-weight: 700; color: #93c5fd; }
+.toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--hd-orange); flex-shrink: 0; }
+.toggle-row span { font-size: 13px; font-weight: 600; color: #f4f4f5; text-transform: none; letter-spacing: normal; }
+.sk-textarea { width: 100%; min-height: 90px; resize: vertical; font-family: ui-monospace, monospace; font-size: 13px; }
+.spc-state { font-weight: 600; margin: 4px 0; }
+.spc-ok { color: #34d399; font-weight: 700; }
+.spc-err { color: #f87171; font-weight: 700; }
+/* "reading…" indicator shown on each function while the auto-read on entry is in progress */
+.spc-reading { color: #93c5fd; font-weight: 700; }
+.spc-reading::after { content: ''; display: inline-block; width: 9px; height: 9px; margin-left: 7px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: hdSpin 0.7s linear infinite; }
+.actuator-row-card .actuator-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+#ecmspc-list .actuator-row-card { flex-wrap: wrap; } #ecmspc-list .actuator-info { flex: 1 1 280px; }
+
+/* Vehicle block (VIN decode) */
+.veh-card{margin:14px 0 4px;padding:10px 14px;border:1px solid var(--border-main);border-radius:var(--radius-md);background:rgba(255,255,255,0.03)}
+.veh-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.veh-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid var(--border-main);font-size:13px}
+.veh-row:first-of-type{border-top:0}
+.veh-row span{color:var(--text-muted);flex:0 0 auto}
+.veh-row b{text-align:right;font-weight:600;word-break:break-word}
+.veh-note{font-size:12px;color:var(--text-muted)}
+
+/* ---- Mobile-first rows for ECM output tests / special functions ---- */
+.out-row,.actuator-row-card.out-row{flex-direction:column;align-items:stretch;gap:6px}
+.out-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.out-head .actuator-title{min-width:0;overflow-wrap:anywhere}
+.out-head .ecm-state-pill{flex:0 0 auto;white-space:nowrap}
+.out-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:4px}
+.out-btns .btn-actuator,.out-btns .btn,.spc-btns .btn{min-width:0;width:100%;min-height:44px;justify-content:center;font-size:13px}
+.out-btns-steps .btn-actuator{grid-column:1/-1}
+.tool-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tool-wrap select{max-width:220px}
+.neutral-banner{justify-content:flex-start}
+.neutral-banner label{display:flex;gap:10px;align-items:center;cursor:pointer}
+.neutral-banner input{width:22px;height:22px;flex:0 0 auto}
+.spc-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:6px}
+.spc-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:6px}
+.spc-fields label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text-muted);font-weight:700}
+.spc-fields input{width:100%;min-height:42px;font-size:16px}
+#ecmspc-list .actuator-row-card{flex-direction:column;align-items:stretch}
+#ecmspc-list .actuator-info{flex:1 1 auto}
+#ecmspc-list .actuator-controls{display:block;width:100%}
+@media (max-width:640px){
+  .tool-wrap{width:100%}
+  .tool-wrap select{max-width:none;flex:1 1 100%;min-height:42px;font-size:16px}
+  .tool-wrap .btn{flex:1 1 100%;min-height:44px}
+  .tool-wrap .ecm-state-pill{flex:1 1 auto;text-align:center}
+  .ecm-telemetry-toolbar{flex-direction:column;align-items:stretch;gap:10px}
+}
+
+/* Phone: home action row, tap targets, no sideways overflow */
+.scan-actions-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.btn-scan{min-width:0;min-height:46px;padding:10px 6px;flex-direction:column;gap:3px;font-size:12.5px;white-space:nowrap}
+@media (min-width:480px){.btn-scan{flex-direction:row;gap:7px;font-size:13px;padding:11px 14px}}
+.btn-back,.btn-action-primary{min-height:44px}
+input,select,textarea{max-width:100%}
+.results-card{max-width:100%;overflow-wrap:anywhere}
+.custom-id-input-row{display:flex;gap:8px;min-width:0}
+.custom-id-input-row .input-dark{flex:1 1 0;min-width:0;font-size:16px;min-height:44px}
+.custom-id-input-row .btn{flex:0 0 auto;white-space:nowrap;padding-left:12px;padding-right:12px;min-height:44px}
+
+/* ---- Status & Settings: phone sheets ---- */
+.modal-box{max-height:calc(100dvh - 32px)}
+.modal-box-lg,.modal-box-xl{display:flex;flex-direction:column;min-height:0}
+.modal-body-scroll{max-height:none;flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.modal-header-line{gap:10px;flex:0 0 auto}
+.modal-title-wrap{min-width:0;flex:1 1 auto}
+.modal-title-wrap h3{overflow-wrap:anywhere}
+.status-header-actions{flex:0 0 auto}
+.btn-close-sm{width:40px;height:40px;flex:0 0 auto}
+.status-modal-badges{gap:6px}
+.status-pill-orange,.status-pill-dark{white-space:normal;overflow-wrap:anywhere}
+.status-pinout-item{gap:10px}
+.status-pinout-item span.val{text-align:right;overflow-wrap:anywhere}
+.input-duo{flex-wrap:wrap}
+.input-duo .input-dark{flex:1 1 140px;min-width:0}
+.modal-box .input-dark,.modal-box select{min-height:44px;font-size:16px;max-width:100%}
+.maint-buttons-grid .btn{min-height:46px;min-width:0;white-space:nowrap;justify-content:center;padding-left:8px;padding-right:8px}
+.settings-actions-row .btn{min-height:48px}
+@media (max-width:640px){
+  .modal-backdrop{padding:0;align-items:stretch}
+  .modal-box,.modal-box-lg,.modal-box-xl{max-width:none;width:100%;height:100dvh;max-height:100dvh;border-radius:0;border-left:0;border-right:0}
+  .modal-header-line{position:sticky;top:0;z-index:2;padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
+  .modal-body-scroll{padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+  .status-diag-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .status-diag-card{padding:10px;min-width:0}
+  .status-diag-val{font-size:15px;overflow-wrap:anywhere}
+  .status-diag-sub1,.status-diag-sub2{overflow-wrap:anywhere}
+  .status-pinout-grid{grid-template-columns:1fr}
+  .status-header-actions .btn-xs span{display:none}
+  .status-header-actions .btn-xs{width:40px;height:40px;padding:0;justify-content:center}
+}
+@media (max-width:420px){
+  .status-diag-grid{grid-template-columns:1fr}
+  .maint-buttons-grid{grid-template-columns:1fr 1fr}
+  .maint-buttons-grid .btn-danger{grid-column:1/-1}
+}
+.modal-body-scroll>*{flex-shrink:0}
+
+/* ECU info table: wrapping values, stacked on phones */
+.info-val{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;line-height:1.35;min-width:0}
+.ecu-info-table{table-layout:fixed}
+.ecu-desc-cell{white-space:normal;overflow-wrap:anywhere;vertical-align:top}
+.ecu-val-cell{vertical-align:top;overflow-wrap:anywhere}
+@media (max-width:560px){
+  .ecu-info-table thead{display:none}
+  .ecu-info-table,.ecu-info-table tbody,.ecu-info-table tr,.ecu-info-table td{display:block;width:100%}
+  .ecu-info-table tr{border-bottom:1px solid var(--border-main)}
+  .ecu-desc-cell{width:100%;border-right:0;padding:8px 12px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);background:transparent}
+  .ecu-val-cell{padding:0 12px 10px}
+  .info-val{font-size:14px}
+}
+.tool-wrap select,.tool-wrap .input-dark{min-width:0;width:100%;text-overflow:ellipsis}
+@media (min-width:641px){.tool-wrap select{width:auto}}
+.results-card,.results-card>*{min-width:0}
+.spc-warn{color:#fcd34d;font-weight:700}
+.abs-bleed-panel{margin-top:10px;padding:12px;border:1px solid #2a2a2e;border-radius:8px;background:#141416}
+.abs-bleed-prompt{font-size:0.95rem;font-weight:600;line-height:1.4;margin:6px 0;color:#e7e7ea}
+.abs-bleed-telem{font-variant-numeric:tabular-nums;margin:6px 0}
+.abs-bleed-step{margin-bottom:2px}
+/* collapsible special-function cards (open-on-demand) */
+.spc-fn{padding:0;overflow:hidden}
+.spc-head{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;
+  background:transparent;border:0;color:inherit;font:inherit;text-align:left;padding:12px 14px;cursor:pointer}
+.spc-head:hover{background:#17171a}
+.spc-caret{transition:transform .15s ease;opacity:.7;font-size:.85rem}
+.spc-fn.spc-open .spc-caret{transform:rotate(90deg)}
+.spc-fn .actuator-controls{padding:0 14px 12px 14px}
+#ecmspc-list select.input-dark{width:100%;min-height:44px;font-size:16px}
+.spc-btns .btn:nth-child(3):last-child{grid-column:1/-1}

@@ -1,0 +1,18 @@
+# ESP32 4MB Flash - Tasmota-style layout: a small FACTORY (safe boot / recovery) firmware + one LARGE app slot.
+# Copyright: (c) 2026 Henzulea Daniel email: <zulea1@gmail.com> | Version: see FIRMWARE_VERSION_STR / FIRMWARE_BUILD_NUM_STR in src/core/config.h
+#
+# Boot logic (handled by the ESP-IDF 2nd-stage bootloader, no code needed):
+#   - If otadata selects ota_0 AND the ota_0 app image is valid  -> boots the MAIN APP (ota_0).
+#   - If otadata is empty/invalid, OR the ota_0 image is invalid  -> falls back to the FACTORY (safe boot) fw.
+# So: a bad/incomplete app upload auto-falls back to safe boot. The app also reboots here on request
+#   (Settings -> Safe Boot, or GPIO39 held at power-up) by erasing otadata (see safe_boot.cpp enableAndReboot()).
+#
+# Firmware updates are done FROM safe boot: the factory fw's /update writes the new app to ota_0 and sets it
+#   bootable (the only OTA slot, so the main app cannot self-update - by design).
+#
+# Sizes: factory 0x130000 = 1216 KB (minimal WiFi+WebServer+OTA recovery fw); ota_0 0x2C0000 = 2816 KB (main app).
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+factory,  app,  factory, 0x10000,  0x130000,
+ota_0,    app,  ota_0,   0x140000, 0x2C0000,

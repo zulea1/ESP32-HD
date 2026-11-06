@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  File     : web_src/index.html
+  Project  : ESP32 HD - UDS Diagnostic Service Tester (ISO 14229 / ISO 15765-2)
+  Copyright: (c) 2026 Henzulea Daniel email: <zulea1@gmail.com>
+  License  : GNU General Public License v3.0 or later (GPL-3.0-or-later) - see LICENSE
+  Version  : @@FW_VERSION@@ (Build #@@FW_BUILD@@) - injected from src/config.h by build_web_ui.py
+  ============================================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title id="page-title">ESP32 HD &middot; v@@FW_VERSION@@ #@@FW_BUILD@@</title>
+  <link rel="stylesheet" href="/style.css?v=0212">
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- Top Header: AP/STA Mode, Copyright & Version/Build (moved up from the main screen's bottom bar) -->
+    <header class="app-header">
+      <div class="header-buttons">
+        <button type="button" class="btn-icon-compact" onclick="openStatusModal()" title="ESP32 System Status">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+        </button>
+        <button type="button" class="btn-icon-compact" onclick="promptFirmwareUpdate()" title="Update Firmware">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <button type="button" class="btn-icon-compact" onclick="openSettingsModal()" title="Settings &amp; Wi-Fi">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+      <div class="header-left" id="app-header-info">
+        <span class="header-brand-line"><span class="brand-esp">ESP32</span> <span class="brand-hd">HD</span></span>
+        <span class="bottom-copyright-text">(c) 2026 Henzulea Daniel email: zulea1@gmail.com</span>
+        <span class="bottom-email-text">zulea1@gmail.com</span>
+      </div>
+      <div class="header-status-stack" id="bottom-wifi-pill">
+        <span class="bottom-wifi-mode-line">
+          <span class="status-dot"></span>
+          <span id="bottom-wifi-mode-text">STA</span>
+        </span>
+        <span class="bottom-wifi-signal-line" id="bottom-wifi-signal-text">-48 dBm</span>
+        <span class="bottom-version-text" id="bottom-version-tag">v@@FW_VERSION@@ build @@FW_BUILD@@</span>
+      </div>
+    </header>
+
+    <!-- ==================================================================== -->
+    <!-- VIEW 1: MODULES LIST (MAIN SCREEN) -->
+    <!-- Default start on Search with NO module buttons displayed -->
+    <!-- ==================================================================== -->
+    <main id="view-modules" class="view-screen">
+      <!-- Search, Scan DTC & Display All Action Buttons (Single Top Row) -->
+      <section class="scan-actions-row">
+        <button type="button" id="btn-mode-search" class="btn-scan active" onclick="executeSearchModules()">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span id="search-btn-label">Search</span>
+        </button>
+        <button type="button" id="btn-mode-all" class="btn-scan" onclick="executeDisplayAllModules()">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Display All</span>
+        </button>
+        <button type="button" id="btn-mode-scan-dtc" class="btn-scan" onclick="executeScanAllDtc()">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span id="scan-dtc-btn-label">Scan DTC</span>
+        </button>
+      </section>
+
+      <!-- Empty State (Shown initially before Search, Scan DTC, or Display All) -->
+      <div id="modules-empty-state" class="empty-state-box">
+        <div class="empty-icon-pulse">
+          <svg class="icon icon-lg text-orange" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <p class="empty-text">Tap <strong>Search</strong> to detect modules, <strong>Scan DTC</strong> to detect &amp; read fault codes on all responding modules, or <strong>Display All</strong> to list all HD ECU addresses.</p>
+      </div>
+
+      <!-- Modules List (Populated on Search or Display All) -->
+      <section class="modules-grid hidden" id="modules-list">
+        <!-- Dynamically populated -->
+      </section>
+
+      <!-- DTC reference lookup (offline, 1,685-code English database). Shown only after Scan DTC is pressed. -->
+      <section class="results-card" id="dtc-ref-card" style="margin:10px 0;padding:10px 12px;display:none">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <label style="flex:1;font-size:12px">DTC lookup
+            <input type="text" class="input-dark" id="dtc-ref-code" placeholder="P0107, C1021, B2206, U0100" maxlength="6" autocomplete="off" onkeydown="if(event.key==='Enter')dtcRefLookup()">
+          </label>
+          <button class="btn btn-secondary btn-xs" onclick="dtcRefLookup()"><span>Look up</span></button>
+        </div>
+        <div class="spc-state" id="dtc-ref-result" style="margin-top:6px;text-align:center">Look up any HD trouble code offline<br>(1,685-code database)</div>
+      </section>
+    </main>
+
+    <!-- ==================================================================== -->
+    <!-- VIEW 2: MODULE DASHBOARD (THE 5 OPERATIONS SELECTION) -->
+    <!-- Upper field: only abbreviation (e.g. ECM) or address. No 3E 00. -->
+    <!-- Buttons: only operation title. No 01.. and no long explanations. -->
+    <!-- Read DTC and Clear DTC used to be two separate operations here; Clear is now a button inside the
+         Diagnostic Trouble Codes page itself (merged 2026-10-31), so there are 5 dashboard operations, not 6. -->
+    <!-- ==================================================================== -->
+    <main id="view-dashboard" class="view-screen hidden">
+      <!-- Active Module Bar -->
+      <section class="module-active-bar module-active-bar-dashboard">
+        <button type="button" class="btn-back" onclick="exitEcuModule()">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>Modules</span>
+        </button>
+        <div class="module-title-box">
+          <h2 id="active-mod-name" class="active-mod-abbr">ECM</h2>
+          <span id="active-mod-desc" class="active-mod-desc">Engine Control Module</span>
+        </div>
+        <div class="header-action-spacer"></div>
+      </section>
+
+      <!-- The 5 Core Diagnostic Operations -->
+      <section class="operations-grid">
+        <!-- 1. Read ECU Information -->
+        <button type="button" class="op-button" onclick="navigateToOperation('ecu_info')">
+          <div class="op-icon-wrap text-orange">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          </div>
+          <div class="op-text-wrap">
+            <h3 class="op-title">Read ECU Information</h3>
+          </div>
+          <div class="card-arrow">
+            <svg class="icon icon-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
+
+        <!-- 2. Diagnostic Trouble Codes (Read + Clear, merged into one page) -->
+        <button type="button" class="op-button" id="op-btn-read-dtc" onclick="navigateToOperation('read_dtc')">
+          <div class="op-icon-wrap text-orange">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="op-text-wrap">
+            <h3 class="op-title">Diagnostic Trouble Codes</h3>
+          </div>
+          <div class="card-arrow">
+            <svg class="icon icon-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
+
+        <!-- 3. Read Module Inputs -->
+        <button type="button" class="op-button" id="op-btn-inputs" onclick="navigateToOperation('inputs')">
+          <div class="op-icon-wrap text-orange">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+          </div>
+          <div class="op-text-wrap">
+            <h3 class="op-title">Read Module Inputs</h3>
+          </div>
+          <div class="card-arrow">
+            <svg class="icon icon-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
+
+        <!-- 4. Set Module Outputs -->
+        <button type="button" class="op-button" id="op-btn-outputs" onclick="navigateToOperation('outputs')">
+          <div class="op-icon-wrap text-orange">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="op-text-wrap">
+            <h3 class="op-title">Set Module Outputs</h3>
+          </div>
+          <div class="card-arrow">
+            <svg class="icon icon-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
+
+        <!-- 5. Special Functions -->
+        <button type="button" class="op-button" id="op-btn-special" onclick="navigateToOperation('special')">
+          <div class="op-icon-wrap text-orange">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div class="op-text-wrap">
+            <h3 class="op-title">Special Functions</h3>
+          </div>
+          <div class="card-arrow">
+            <svg class="icon icon-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
+      </section>
+    </main>
+
+    <!-- ==================================================================== -->
+    <!-- VIEW 3: DEDICATED OPERATION SUB-PAGE -->
+    <!-- Upper field: just operation name. No 3E 00, no second small line. -->
+    <!-- Dynamically renders Read ECU Information, Read/Clear DTC, and the -->
+    <!-- 36-parameter ECM Read Module Inputs (DID 0x0200) live telemetry grid -->
+    <!-- ==================================================================== -->
+    <main id="view-operation" class="view-screen hidden">
+      <!-- Operation Sub-Page Header -->
+      <section class="module-active-bar">
+        <button type="button" class="btn-back" onclick="exitOperationToDashboard()">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          <span id="op-back-btn-text">Back</span>
+        </button>
+        <div class="module-title-box">
+          <h2 id="op-page-title" class="op-page-title-text">Read ECU Information</h2>
+        </div>
+        <div class="header-action-spacer"></div>
+      </section>
+
+      <!-- Operation Page Dynamic Content Area (ECM 36-Param & ABS 13-Param DID 0x0200 Grids) -->
+      <section class="op-content-area" id="op-content-container" data-did="0200">
+        <!-- ABS LIVE SENSOR INPUTS Container (CAN ID 0x7E1 · DID 0x0200) -->
+        <div class="results-card hidden" id="abs-live-sensor-card" data-module="0x7E1" data-did="0200">
+          <div class="results-header-row ecm-telemetry-toolbar">
+            <div>
+              <span class="results-title">ABS LIVE SENSOR INPUTS</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="ecm-stream-badge" id="abs-stream-status-badge">
+                <span class="ecm-stream-dot"></span>
+                <span id="abs-stream-status-text">DID 0x0200 LIVE</span>
+              </span>
+              <button type="button" class="btn btn-secondary btn-xs" id="btn-toggle-abs-stream" onclick="toggleEcmLiveStream0200()">
+                <span id="btn-toggle-abs-stream-lbl">Pause</span>
+              </button>
+              <button type="button" class="btn btn-primary btn-xs" onclick="requestEcmInputs0200Once()">
+                <span>Read Now</span>
+              </button>
+            </div>
+          </div>
+          <div id="abs-inputs-error-banner" class="hidden" style="padding:10px 12px;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);border-radius:var(--radius-md);color:#fb7185;font-size:12px;font-weight:700;"></div>
+          <div class="ecm-inputs-grid" id="abs-inputs-grid" data-did="0200" data-module="0x7E1">
+            <div class="ecm-input-row" id="abs-row-front_wheel_speed">
+              <span class="ecm-input-label">Front Wheel Speed</span>
+              <div class="ecm-input-val-wrap" id="abs-val-front_wheel_speed"><span class="ecm-input-value">0.00</span><span class="ecm-input-unit">km/h</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-rear_wheel_speed">
+              <span class="ecm-input-label">Rear Wheel Speed</span>
+              <div class="ecm-input-val-wrap" id="abs-val-rear_wheel_speed"><span class="ecm-input-value">0.00</span><span class="ecm-input-unit">km/h</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-front_brake_pressure">
+              <span class="ecm-input-label">Front Brake Pressure</span>
+              <div class="ecm-input-val-wrap" id="abs-val-front_brake_pressure"><span class="ecm-input-value">0.0</span><span class="ecm-input-unit">bar</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-rear_brake_pressure">
+              <span class="ecm-input-label">Rear Brake Pressure</span>
+              <div class="ecm-input-val-wrap" id="abs-val-rear_brake_pressure"><span class="ecm-input-value">0.0</span><span class="ecm-input-unit">bar</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-abs_ecu_module_voltage">
+              <span class="ecm-input-label">ABS ECU Module Voltage</span>
+              <div class="ecm-input-val-wrap" id="abs-val-abs_ecu_module_voltage"><span class="ecm-input-value">12.6</span><span class="ecm-input-unit">V</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-front_brake_light_switch">
+              <span class="ecm-input-label">Front Brake Light Switch</span>
+              <div class="ecm-input-val-wrap" id="abs-val-front_brake_light_switch"><span class="ecm-state-pill state-green">INACTIVE</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-rear_brake_light_switch">
+              <span class="ecm-input-label">Rear Brake Light Switch</span>
+              <div class="ecm-input-val-wrap" id="abs-val-rear_brake_light_switch"><span class="ecm-state-pill state-green">INACTIVE</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-abs_warning_lamp_state">
+              <span class="ecm-input-label">ABS Warning Lamp State</span>
+              <div class="ecm-input-val-wrap" id="abs-val-abs_warning_lamp_state"><span class="ecm-state-pill state-green">LAMP OFF</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-abs_motor_pump_relay_status">
+              <span class="ecm-input-label">ABS Motor Pump Relay Status</span>
+              <div class="ecm-input-val-wrap" id="abs-val-abs_motor_pump_relay_status"><span class="ecm-state-pill state-green">STOPPED</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-front_inlet_valve_state">
+              <span class="ecm-input-label">Front Inlet Valve State</span>
+              <div class="ecm-input-val-wrap" id="abs-val-front_inlet_valve_state"><span class="ecm-state-pill state-green">VALVE CLOSED</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-front_outlet_valve_state">
+              <span class="ecm-input-label">Front Outlet Valve State</span>
+              <div class="ecm-input-val-wrap" id="abs-val-front_outlet_valve_state"><span class="ecm-state-pill state-green">VALVE CLOSED</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-rear_inlet_valve_state">
+              <span class="ecm-input-label">Rear Inlet Valve State</span>
+              <div class="ecm-input-val-wrap" id="abs-val-rear_inlet_valve_state"><span class="ecm-state-pill state-green">VALVE CLOSED</span></div>
+            </div>
+            <div class="ecm-input-row" id="abs-row-rear_outlet_valve_state">
+              <span class="ecm-input-label">Rear Outlet Valve State</span>
+              <div class="ecm-input-val-wrap" id="abs-val-rear_outlet_valve_state"><span class="ecm-state-pill state-green">VALVE CLOSED</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABS ACTUATOR TESTS Container (CAN ID 0x7E1 · Service 0x2F · DID 0x0540) -->
+        <div class="results-card hidden" id="abs-actuator-card" data-module="0x7E1" data-did="0540">
+          <div class="results-header-row ecm-telemetry-toolbar">
+            <div>
+              <span class="results-title">ABS ACTUATOR TESTS</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="ecm-state-pill state-green" id="abs-outputs-session-pill">EXT SESSION: 02 10 03 &middot; TP: 02 3E 80</span>
+              <span class="ecm-state-pill state-green" id="abs-outputs-speed-pill">SPEED: 0.0 km/h (LOCKED SAFE)</span>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="cleanupAbsModuleOutputs(true)">
+                <span>Return to ECU (04 2F 05 40 00)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Wheel Speed Safety Lock Banner (km/h > 0 -> "Disabled: Vehicle is Moving") -->
+          <div id="abs-speed-interlock-banner" class="actuator-banner banner-error hidden">
+            <span>&#9888; Disabled: Vehicle is Moving (Wheel Speed &gt; 0 km/h). Stop motorcycle completely before testing ABS Hydraulic Pump.</span>
+            <span class="mono">SAFETY LOCK</span>
+          </div>
+
+          <!-- 3-Second Timeout ("ABS Module Communication Timeout") & NRC (03 7F 2F [NRC]) Toast Banner -->
+          <div id="abs-actuator-status-banner" class="actuator-banner banner-ok hidden"></div>
+
+          <div class="actuator-list-wrap" id="abs-actuators-list">
+            <div class="actuator-row-card" id="act-row-0540" data-module="0x7E1" data-did="0x0540">
+              <div class="actuator-info-col">
+                <div class="actuator-title">ABS Hydraulic Pump Motor</div>
+                <div class="actuator-meta-line">
+                  <span class="did-tag">DID 0x0540</span>
+                  <span>&middot;</span>
+                  <span id="act-frame-0540">ON: 06 2F 05 40 03 20 20 00 &rarr; 1s &rarr; 04 2F 05 40 00 00 00 00</span>
+                </div>
+              </div>
+              <div class="actuator-actions-col">
+                <span class="ecm-state-pill state-green" id="act-pill-0540">ECU CONTROL (IDLE)</span>
+                <button type="button" class="btn-actuator" id="act-btn-0540" onclick="triggerAbsActuatorCommand('0540')">
+                  <span>Test Pump (1s)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+
+    <!-- ESP32 System Status Modal (Modeled on Safe Boot Web UI Telemetry) -->
+    <div id="modal-status" class="modal-backdrop">
+      <div class="modal-box modal-box-xl">
+        <div class="modal-header-line">
+          <div class="modal-title-wrap">
+            <svg class="icon icon-hd" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/></svg>
+            <h3>ESP32 System Status</h3>
+          </div>
+          <div class="status-header-actions">
+            <button type="button" class="btn btn-secondary btn-xs" onclick="refreshStatusModal()">
+              <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+              <span>Refresh</span>
+            </button>
+            <button type="button" class="btn-close-sm" onclick="closeStatusModal()">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body-scroll">
+          <div class="status-modal-badges">
+            <span class="status-pill-orange" id="st-fw-badge">FW: @@FW_VERSION@@ (Build #@@FW_BUILD@@)</span>
+            <span class="status-pill-dark" id="st-app-badge">App Flash: 38.4% (0.76 / 1.94 MB)</span>
+          </div>
+          <!-- 4 Diagnostic Telemetry Cards (Safe Boot Web UI Layout) -->
+          <div class="status-diag-grid">
+            <div class="status-diag-card">
+              <div class="status-diag-head">
+                <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                <span>NETWORK &amp; SSID</span>
+              </div>
+              <div class="status-diag-val" id="st-ip">192.168.1.142</div>
+              <div class="status-diag-sub1">SSID: <strong id="st-ssid">ESP32-HD</strong></div>
+              <div class="status-diag-sub2" id="st-wifi-mode">Station (STA) &middot; -48 dBm</div>
+            </div>
+
+            <div class="status-diag-card">
+              <div class="status-diag-head">
+                <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/></svg>
+                <span>ESP32 HARDWARE</span>
+              </div>
+              <div class="status-diag-val" id="st-heap">218.4 KB Free</div>
+              <div class="status-diag-sub1">CPU: <strong id="st-cpu">240 MHz</strong> &middot; Up: <span id="st-uptime">142</span>s</div>
+              <div class="status-diag-sub2" id="st-mac">MAC: --:--:--:--:--:--</div>
+            </div>
+
+            <div class="status-diag-card">
+              <div class="status-diag-head">
+                <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg>
+                <span>FLASH &amp; OTA SLOT</span>
+              </div>
+              <div class="status-diag-val" id="st-app-pct">38.4% (0.76 / 1.94 MB)</div>
+              <div class="status-diag-sub1">Flash: <strong id="st-flash">4096 KB (4 MB)</strong> (No SPIFFS)</div>
+              <div class="status-diag-sub2 text-orange" style="font-weight:700;" id="st-card-fw">Build: @@FW_VERSION@@ (Build #@@FW_BUILD@@)</div>
+            </div>
+
+            <div class="status-diag-card">
+              <div class="status-diag-head">
+                <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>CAN BUS &amp; UDS</span>
+              </div>
+              <div class="status-diag-val" id="st-can-baud">500 kbps &middot; RUNNING</div>
+              <div class="status-diag-sub1" id="st-can-counters">RX: <strong>0</strong> &middot; TX: <strong>0</strong> &middot; Err: <strong>0</strong></div>
+              <div class="status-diag-sub2" id="st-uds-counters">UDS Q/R: 0 / 0 &middot; Filter: 0x7C0-0x7FF</div>
+            </div>
+          </div>
+
+          <!-- Stored NVS Configuration & Hardware Pinout Overview -->
+          <div class="status-section-card">
+            <div class="status-section-header">
+              <div class="status-section-title">
+                <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>Stored NVS Configuration &amp; Hardware Pinout Overview</span>
+              </div>
+              <span class="status-pill-dark" id="st-node-badge">ESP32 HD</span>
+            </div>
+            <div class="status-pinout-grid">
+              <div class="status-pinout-item"><span class="lbl">Configured SSID:</span><span class="val" id="st-nvs-ssid">ESP32-HD</span></div>
+              <div class="status-pinout-item"><span class="lbl">CAN Chip Interface:</span><span class="val" id="st-can-chip">TJA1043</span></div>
+              <div class="status-pinout-item"><span class="lbl">CAN TX / RX:</span><span class="val" id="st-can-tx-rx">GPIO 22 / GPIO 21</span></div>
+              <div class="status-pinout-item" id="st-tja-stb-en-row"><span class="lbl">TJA1043 STB / EN:</span><span class="val" id="st-tja-stb-en">GPIO 19 / GPIO 18</span></div>
+              <div class="status-pinout-item" id="st-tja-err-led-row"><span class="lbl" id="st-tja-err-led-lbl">TJA1043 ERR / LED:</span><span class="val" id="st-tja-err-led">GPIO 33 / GPIO 2</span></div>
+              <div class="status-pinout-item"><span class="lbl">Force Safe Boot Pin:</span><span class="val text-orange">GPIO 4 (LOW at Power-Up)</span></div>
+              <div class="status-pinout-item"><span class="lbl">Partition Layout:</span><span class="val text-orange">4 MB (Dual 1.94 MB OTA, No SPIFFS)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings / Configuration Modal -->
+    <div id="modal-settings" class="modal-backdrop">
+      <div class="modal-box modal-box-lg">
+        <div class="modal-header-line">
+          <div class="modal-title-wrap">
+            <svg class="icon icon-hd" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <h3>Settings &middot; v@@FW_VERSION@@ #@@FW_BUILD@@</h3>
+          </div>
+          <button type="button" class="btn-close-sm" onclick="closeSettingsModal()">&times;</button>
+        </div>
+        <div class="modal-body-scroll">
+          <form id="settings-form" onsubmit="return handleSaveSettings(event)">
+            <div class="field-item">
+              <label>Device Name</label>
+              <input type="text" id="cfg-device-name" class="input-dark" value="ESP32 HD">
+            </div>
+            <div class="field-item">
+              <label>Default Wi-Fi Mode</label>
+              <select id="cfg-wifi-mode" class="input-dark">
+                <option value="STA" selected>Station mode (default)</option>
+                <option value="AP">Access point (open fallback)</option>
+              </select>
+            </div>
+            <div class="field-item">
+              <label>Station (STA) SSID &amp; Password</label>
+              <div class="input-duo">
+                <input type="text" id="cfg-sta-ssid" class="input-dark flex-1" value="ESP32-HD" placeholder="STA SSID">
+                <input type="text" id="cfg-sta-pass" class="input-dark flex-1" value="1122334455" autocomplete="off" placeholder="STA Password">
+              </div>
+            </div>
+            <div class="field-item">
+              <label>Fallback Access Point (AP) Name</label>
+              <input type="text" id="cfg-ap-ssid" class="input-dark" value="ESP-32-HD" placeholder="Open AP Name">
+            </div>
+            <div class="field-item">
+              <label>CAN Bitrate</label>
+              <select id="cfg-can-bitrate" class="input-dark">
+                <option value="500000" selected>500 kbps (Standard)</option>
+                <option value="250000">250 kbps</option>
+                <option value="1000000">1 Mbps</option>
+              </select>
+            </div>
+
+            <hr class="modal-divider">
+
+            <div class="field-item">
+              <label>CAN Transceiver Chip</label>
+              <select id="cfg-can-chip" class="input-dark" onchange="handleCanChipTypeChange()">
+                <option value="tja1043" selected>TJA1043 (STB/EN + ERR fault pin)</option>
+                <option value="plain">Plain transceiver (TX/RX only, e.g. SN65HVD230, MCP2551)</option>
+              </select>
+            </div>
+            <div class="field-item">
+              <label>CAN TX / RX Pins</label>
+              <div class="input-duo">
+                <input type="number" id="cfg-can-tx-pin" class="input-dark flex-1" min="0" max="39" value="22" placeholder="TX GPIO">
+                <input type="number" id="cfg-can-rx-pin" class="input-dark flex-1" min="0" max="39" value="21" placeholder="RX GPIO">
+              </div>
+            </div>
+            <div id="cfg-tja-pins-section">
+              <div class="field-item">
+                <label>TJA1043 STB / EN Pins</label>
+                <div class="input-duo">
+                  <input type="number" id="cfg-tja-stb-pin" class="input-dark flex-1" min="0" max="39" value="19" placeholder="STB GPIO">
+                  <input type="number" id="cfg-tja-en-pin" class="input-dark flex-1" min="0" max="39" value="18" placeholder="EN GPIO">
+                </div>
+              </div>
+              <div class="field-item">
+                <label>TJA1043 ERR Pin</label>
+                <input type="number" id="cfg-tja-err-pin" class="input-dark" min="0" max="39" value="33" placeholder="ERR GPIO">
+              </div>
+            </div>
+          </form>
+
+          <hr class="modal-divider">
+
+          <!-- CAN/UDS traffic log on the serial console -->
+          <div class="seckey-settings-section">
+            <h4 class="settings-subhead">CAN traffic log</h4>
+            <label class="toggle-row">
+              <input type="checkbox" id="cfg-canlog-enabled" onchange="handleCanLogToggle()">
+              <span>Print CAN/UDS traffic to the serial console</span>
+            </label>
+            <p class="spc-hint">When on, the firmware prints <code>[UDS-TX]</code>, <code>[UDS-RX]</code>, <code>[ISOTP]</code> and <code>[UDS-SCAN]</code> lines to the USB serial console. Off by default, because that traffic floods the console and can disturb timing. Saved to the device.</p>
+          </div>
+
+          <hr class="modal-divider">
+
+          <!-- Developer test mode: adds a "Continue (debug)" button to the ABS bleed brake-pressure gates -->
+          <div class="seckey-settings-section">
+            <h4 class="settings-subhead">Developer test</h4>
+            <label class="toggle-row">
+              <input type="checkbox" id="cfg-devtest-enabled" onchange="handleDevTestToggle()">
+              <span>Show "Continue (debug)" on brake-pressure prompts</span>
+            </label>
+            <p class="spc-hint">Adds a debug Continue button to the ABS bleed brake-pressure prompts (apply/release the brake, pump cycle), so you can step through without a bike or without the pressure actually reaching the threshold. Off by default. Saved to the device.</p>
+          </div>
+
+          <hr class="modal-divider">
+
+          <div class="system-maintenance-section">
+            <div class="maint-buttons-grid">
+              <button type="button" class="btn btn-secondary" onclick="promptFirmwareUpdate()">
+                <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Update Firmware</span>
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="triggerReboot()">
+                <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <span>Reboot</span>
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="triggerSafeBootMode()">
+                <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Safe Boot</span>
+              </button>
+              <button type="button" class="btn btn-danger" onclick="triggerFactoryReset()">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Factory Reset</span>
+              </button>
+            </div>
+          </div>
+
+          <hr class="modal-divider">
+
+          <div class="settings-actions-row">
+            <button type="submit" form="settings-form" class="btn btn-primary flex-1">Save &amp; Reboot</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Themed Confirmation Dialog (in-app replacement for native browser confirm()/alert() popups) -->
+    <div id="modal-confirm" class="modal-backdrop">
+      <div class="modal-box modal-box-lg">
+        <div class="modal-header-line">
+          <div class="modal-title-wrap">
+            <svg class="icon icon-hd" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <h3 id="confirm-modal-title">Confirm</h3>
+          </div>
+          <button type="button" class="btn-close-sm" onclick="hdConfirmResolve(false)">&times;</button>
+        </div>
+        <div class="modal-body-scroll">
+          <p class="confirm-modal-message" id="confirm-modal-message"></p>
+          <div class="settings-actions-row">
+            <button type="button" class="btn btn-secondary flex-1" onclick="hdConfirmResolve(false)">Cancel</button>
+            <button type="button" class="btn btn-primary flex-1" onclick="hdConfirmResolve(true)">Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Themed result dialog (single-button acknowledge popup for operation results) -->
+    <div id="modal-alert" class="modal-backdrop">
+      <div class="modal-box modal-box-lg">
+        <div class="modal-header-line">
+          <div class="modal-title-wrap">
+            <svg class="icon icon-hd" id="alert-modal-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <h3 id="alert-modal-title">Result</h3>
+          </div>
+          <button type="button" class="btn-close-sm" onclick="hdAlertResolve()">&times;</button>
+        </div>
+        <div class="modal-body-scroll">
+          <p class="confirm-modal-message" id="alert-modal-message"></p>
+          <div class="settings-actions-row">
+            <button type="button" class="btn btn-primary flex-1" onclick="hdAlertResolve()">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Busy/waiting popup: shown while a confirmed action's UDS commands are in flight (e.g. between "Place
+         FOB close to the Motorcycle" and the result popup, or between the PIN-change confirm and its result) -
+         same look as modal-proc's spinner, but standalone so direct (non-guided-procedure) actions like FOB
+         assignment and PIN change can show "working" feedback too, not just an inline status line. -->
+    <div id="modal-wait" class="modal-backdrop">
+      <div class="modal-box modal-box-lg">
+        <div class="modal-header-line">
+          <div class="modal-title-wrap">
+            <svg class="icon icon-hd" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <h3 id="wait-modal-title">Please wait</h3>
+          </div>
+        </div>
+        <div class="modal-body-scroll">
+          <p class="confirm-modal-message" id="wait-modal-message"></p>
+          <div style="display:flex;justify-content:center;padding:8px 0">
+            <div style="width:30px;height:30px;border:3px solid rgba(255,255,255,0.18);border-top-color:#ff8a00;border-radius:50%;animation:hdSpin 0.8s linear infinite"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Guided-procedure popup (ABS bleed etc.): one step at a time, with the right buttons each step. -->
+    <div id="modal-proc" class="modal-backdrop">
+      <div class="modal-box modal-box-lg">
+        <div class="modal-header-line">
+          <div class="modal-title-wrap">
+            <svg class="icon icon-hd" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <h3 id="proc-modal-title">Procedure</h3>
+          </div>
+        </div>
+        <div class="modal-body-scroll">
+          <p class="confirm-modal-message" id="proc-modal-message" style="white-space:pre-line"></p>
+          <input type="text" id="proc-modal-input" class="input-dark" style="display:none;width:100%;margin:6px 0" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <div id="proc-modal-telem" class="spc-hint" style="display:none"></div>
+          <div id="proc-modal-spinner" style="display:none;justify-content:center;padding:8px 0">
+            <div style="width:30px;height:30px;border:3px solid rgba(255,255,255,0.18);border-top-color:#ff8a00;border-radius:50%;animation:hdSpin 0.8s linear infinite"></div>
+          </div>
+          <div class="settings-actions-row" id="proc-modal-btns"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/main.js?v=0212"></script>
+</body>
+</html>

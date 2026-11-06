@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  File     : web_src/safeboot.html
+  Project  : ESP32 HD - UDS Diagnostic Service Tester (ISO 14229 / ISO 15765-2)
+  Copyright: (c) 2026 Henzulea Daniel email: <zulea1@gmail.com>
+  License  : GNU General Public License v3.0 or later (GPL-3.0-or-later) - see LICENSE
+  Version  : @@FW_VERSION@@ (Build #@@FW_BUILD@@) - injected from src/config.h by build_web_ui.py
+  ============================================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Safe Boot Rescue Mode | HD Diagnostic Tester v@@FW_VERSION@@ #@@FW_BUILD@@</title>
+  <style>
+    :root {
+      --bg: #060608;
+      --card: #121316;
+      --panel: #0b0c0e;
+      --border: #26282e;
+      --border-orange: rgba(255, 102, 0, 0.45);
+      --hd-orange: #ff6600;
+      --hd-orange-bright: #ff7a1a;
+      --hd-orange-dark: #e65500;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text: #f8fafc;
+      --muted: #a1a1aa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      background-image: radial-gradient(circle at 50% 0%, rgba(255, 102, 0, 0.1) 0%, transparent 60%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .rescue-shell {
+      width: 100%;
+      max-width: 780px;
+      background: var(--card);
+      border: 2px solid var(--hd-orange);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+      overflow: hidden;
+    }
+    /* HD Black & Orange Header Banner */
+    .rescue-header {
+      background: linear-gradient(180deg, #1b1c22 0%, #0e0f13 100%);
+      border-bottom: 1px solid var(--border-orange);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .title-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .title-badges h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .badge {
+      font-family: monospace;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .badge-orange {
+      background: var(--hd-orange);
+      color: #08080a;
+      border: 1px solid #ff8533;
+    }
+    .badge-dark {
+      background: #1a1b20;
+      color: var(--hd-orange);
+      border: 1px solid var(--border-orange);
+    }
+    .header-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-family: monospace;
+      margin-top: 3px;
+    }
+    /* SVG Icon Primitives */
+    .icon {
+      width: 15px;
+      height: 15px;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .icon-sm { width: 14px; height: 14px; }
+    .icon-md { width: 20px; height: 20px; }
+    .icon-lg { width: 24px; height: 24px; }
+    /* Unified HD Black / Dark Grey / Orange Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      text-decoration: none;
+      user-select: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: linear-gradient(180deg, #ff7714 0%, #f25c00 100%);
+      color: #070708;
+      border: 1px solid #ff8833;
+      box-shadow: 0 4px 12px rgba(255, 102, 0, 0.28);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(180deg, #ff852b 0%, #ff6600 100%);
+    }
+    .btn-secondary {
+      background: linear-gradient(180deg, #1c1d22 0%, #111216 100%);
+      color: #f4f4f5;
+      border: 1px solid var(--border-orange);
+    }
+    .btn-secondary:hover {
+      background: linear-gradient(180deg, #25272e 0%, #17191f 100%);
+      border-color: var(--hd-orange);
+      color: #ffffff;
+    }
+    .btn-danger {
+      background: linear-gradient(180deg, #261414 0%, #160b0b 100%);
+      color: #ff8533;
+      border: 1px solid rgba(255, 102, 0, 0.65);
+    }
+    .btn-danger:hover {
+      background: linear-gradient(180deg, #ff6600 0%, #d9460f 100%);
+      color: #070708;
+    }
+    /* Toast Banner */
+    .toast-banner {
+      display: none;
+      margin: 16px 24px 0 24px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .toast-ok {
+      background: rgba(255, 102, 0, 0.14);
+      border: 1px solid var(--border-orange);
+      color: #ff944d;
+    }
+    .toast-err {
+      background: rgba(244, 63, 94, 0.2);
+      border: 1px solid rgba(244, 63, 94, 0.5);
+      color: #fecdd3;
+    }
+    .toast-left { display: flex; align-items: center; gap: 8px; }
+    .toast-close {
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    /* Body Container */
+    .rescue-body {
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    /* Warning Notice Box */
+    .warning-box {
+      padding: 15px;
+      background: rgba(255, 102, 0, 0.08);
+      border: 1px solid var(--border-orange);
+      border-left: 4px solid var(--hd-orange);
+      border-radius: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 12px;
+      color: #e4e4e7;
+      line-height: 1.55;
+    }
+    .warning-box strong.head {
+      color: var(--hd-orange);
+      font-weight: 800;
+      display: block;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+    }
+    .warning-sub {
+      margin-top: 4px;
+      color: var(--muted);
+    }
+    /* 4 Diagnostic Telemetry Cards */
+    .diag-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      gap: 12px;
+    }
+    .diag-card {
+      padding: 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--hd-orange);
+      border-radius: 12px;
+    }
+    .diag-head {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .diag-val {
+      font-size: 14px;
+      font-weight: 800;
+      font-family: monospace;
+      color: var(--hd-orange);
+    }
+    .diag-sub1 {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--muted);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .diag-sub1 strong { color: #ffffff; }
+    .diag-sub2 {
+      font-size: 10px;
+      font-family: monospace;
+      color: #71717a;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* Stored NVS Configuration & Pinout Box */
+    .section-card {
+      padding: 16px 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .section-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .pinout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 6px 16px;
+      padding: 12px;
+      background: #101115;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .pinout-item {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed #26282e;
+      padding-bottom: 4px;
+    }
+    .pinout-item span.lbl { color: var(--muted); }
+    .pinout-item span.val { color: #ffffff; font-weight: 700; }
+    /* OTA Upload Box */
+    .ota-picker-row {
+      border: 1px dashed var(--border-orange);
+      border-radius: 10px;
+      padding: 14px 16px;
+      background: #101115;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .ota-file-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .ota-file-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .ota-file-hint {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .ota-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .progress-wrap {
+      display: none;
+      margin-top: 12px;
+    }
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-family: monospace;
+      color: #e4e4e7;
+      margin-bottom: 6px;
+    }
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: #1c1d22;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--hd-orange);
+      transition: width 0.2s ease;
+    }
+    /* Confirm Factory Reset Bar */
+    .confirm-reset-box {
+      display: none;
+      padding: 12px;
+      background: rgba(255, 102, 0, 0.1);
+      border: 1px solid var(--hd-orange);
+      border-radius: 8px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .confirm-reset-text {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ff944d;
+    }
+    .reboot-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .rescue-footer {
+      padding: 12px 24px;
+      background: #09090b;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .text-orange { color: var(--hd-orange); }
+    .text-emerald { color: #34d399; }
+  </style>
+</head>
+<body>
+  <div class="rescue-shell">
+    <!-- Header with Recovery Info -->
+    <div class="rescue-header">
+      <div class="header-left">
+        <div>
+          <div class="title-badges">
+            <h2>ESP32 HD Safe Boot</h2>
+            <span class="badge badge-orange">RECOVERY PORTAL</span>
+            <span class="badge badge-dark" id="sb-fw-badge">FW: @@FW_VERSION@@ (Build #@@FW_BUILD@@)</span>
+            <span class="badge badge-dark" id="sb-app-badge">App Flash: 38.4% (0.76 / 1.94 MB)</span>
+          </div>
+          <div class="header-sub">
+            Node: <span id="sb-hdr-node">ESP32-HD</span> &middot; Force Safe Boot: GPIO 4 LOW &middot; URL: <span id="sb-hdr-url">http://192.168.4.1/</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button type="button" class="btn btn-secondary" onclick="refreshSafeInfo(true)">
+          <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+          <span>Refresh Info</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Popup Toast Notification Banner -->
+    <div id="sb-toast" class="toast-banner toast-ok">
+      <div class="toast-left">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="sb-toast-msg">Ready</span>
+      </div>
+      <button type="button" class="toast-close" onclick="hideToast()">&#10005;</button>
+    </div>
+
+    <!-- Main Rescue Body -->
+    <div class="rescue-body">
+      <!-- Hardware Protection Notice Box -->
+      <div class="warning-box">
+        <svg class="icon icon-md text-orange" style="margin-top:2px;" viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <strong class="head">Hardware Protection Active (Forced by GPIO 4 LOW at Power-Up or Web Request)</strong>
+          The device entered Safe Boot because <strong>GPIO 4 was kept LOW when powered up</strong> (or manual Safe Boot was requested via Web UI).
+          <div class="warning-sub">
+            <strong>CAN Bus (TWAI) and UDS background tasks are suspended</strong> to guarantee safe OTA partition flashing and NVS recovery.
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Diagnostic Telemetry Cards -->
+      <div class="diag-grid">
+        <div class="diag-card">
+          <div class="diag-head">
+            <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+            <span>NETWORK &amp; SSID</span>
+          </div>
+          <div class="diag-val" id="sb-ip">192.168.4.1</div>
+          <div class="diag-sub1">SSID: <strong id="sb-ssid">ESP32-HD</strong></div>
+          <div class="diag-sub2" id="sb-wifi-mode">Station (STA) &middot; -42 dBm</div>
+        </div>
+
+        <div class="diag-card">
+          <div class="diag-head">
+            <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/></svg>
+            <span>ESP32 HARDWARE</span>
+          </div>
+          <div class="diag-val" id="sb-heap">214.8 KB Free</div>
+          <div class="diag-sub1">CPU: <strong id="sb-cpu">240 MHz</strong> &middot; Up: <span id="sb-uptime">18</span>s</div>
+          <div class="diag-sub2" id="sb-mac">MAC: --:--:--:--:--:--</div>
+        </div>
+
+        <div class="diag-card">
+          <div class="diag-head">
+            <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg>
+            <span>FLASH &amp; OTA SLOT</span>
+          </div>
+          <div class="diag-val" id="sb-app-pct">38.4% (0.76 / 1.94 MB)</div>
+          <div class="diag-sub1">Flash: <strong id="sb-flash">4096 KB (4 MB)</strong> (app0/app1, No SPIFFS)</div>
+          <div class="diag-sub2 text-orange" style="font-weight:700;" id="sb-card-fw">Build: @@FW_VERSION@@ (Build #@@FW_BUILD@@)</div>
+        </div>
+
+        <div class="diag-card">
+          <div class="diag-head">
+            <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>SAVED NVS PROFILE</span>
+          </div>
+          <div class="diag-val" id="sb-can-baud">500 kbps</div>
+          <div class="diag-sub1">Trigger: <strong id="sb-peer">GPIO 4 (LOW)</strong></div>
+          <div class="diag-sub2" id="sb-sleep-info">CAN UDS Filter: 0x7DF - 0x7FF</div>
+        </div>
+      </div>
+
+      <!-- Stored NVS Configuration & Hardware Pinout Overview -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <svg class="icon text-orange" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Stored NVS Configuration &amp; Hardware Pinout Overview</span>
+          </div>
+          <span class="badge badge-dark" id="sb-node-badge">ESP32-HD</span>
+        </div>
+        <div class="pinout-grid">
+          <div class="pinout-item"><span class="lbl">Configured SSID:</span><span class="val" id="sb-nvs-ssid">ESP32-HD</span></div>
+          <div class="pinout-item"><span class="lbl">CAN TX / RX:</span><span class="val">GPIO 22 / GPIO 21</span></div>
+          <div class="pinout-item"><span class="lbl">TJA1043 STB / EN:</span><span class="val">GPIO 19 / GPIO 18</span></div>
+          <div class="pinout-item"><span class="lbl">TJA1043 ERR / LED:</span><span class="val">GPIO 33 / GPIO 2</span></div>
+          <div class="pinout-item"><span class="lbl">Force Safe Boot Pin:</span><span class="val text-orange">GPIO 4 (LOW at Power-Up)</span></div>
+          <div class="pinout-item"><span class="lbl">Firmware Build:</span><span class="val text-orange" id="sb-pin-fw">@@FW_VERSION@@ (Build #@@FW_BUILD@@)</span></div>
+        </div>
+      </div>
+
+      <!-- Action 1: Emergency Firmware Flashing (.bin) -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <svg class="icon text-orange" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>1. Emergency Firmware Flashing (.bin)</span>
+          </div>
+          <span class="badge badge-orange">OTA PARTITION RECOVERY</span>
+        </div>
+        <p class="section-desc">
+          Upload a compiled PlatformIO binary (<code class="mono" style="color:#ff944d;">firmware.bin</code>) to rewrite the active app partition.
+        </p>
+
+        <div class="ota-picker-row">
+          <div class="ota-file-info">
+            <svg class="icon icon-lg text-orange" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="10 13 8 15 10 17"/><polyline points="14 13 16 15 14 17"/></svg>
+            <div>
+              <div class="ota-file-name" id="sb-filename">Select recovery firmware.bin</div>
+              <div class="ota-file-hint" id="sb-filesize">Accepts compiled ESP32 binary (.pio/build/esp32_hd/firmware.bin)</div>
+            </div>
+          </div>
+
+          <div class="ota-actions">
+            <input type="file" id="sb-file" accept=".bin" style="display:none;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('sb-file').click()">
+              <svg class="icon icon-sm text-orange" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>Choose File</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="sb-btn-flash" onclick="startSafeOta()">
+              <svg class="icon icon-sm" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span id="sb-btn-flash-txt">Flash &amp; Reboot</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="progress-wrap" id="sb-prog-wrap">
+          <div class="progress-labels">
+            <span id="sb-status">Uploading recovery binary...</span>
+            <span id="sb-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="sb-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action 2: Factory Reset NVS Storage -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <svg class="icon text-orange" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>2. Factory Reset NVS Storage</span>
+          </div>
+          <span class="badge badge-dark">NVS ERASE</span>
+        </div>
+        <p class="section-desc">
+          Erase all stored Wi-Fi credentials, CAN baudrates, and reset the Safe Boot flag back to factory defaults.
+        </p>
+
+        <button type="button" class="btn btn-danger" id="btn-show-reset" onclick="showResetConfirm()">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          <span>Factory Reset Device</span>
+        </button>
+
+        <div class="confirm-reset-box" id="box-confirm-reset">
+          <span class="confirm-reset-text">Confirm erase of all NVS settings? Defaults will be restored.</span>
+          <div class="ota-actions">
+            <button type="button" class="btn btn-secondary" onclick="cancelResetConfirm()">
+              <span>Cancel</span>
+            </button>
+            <button type="button" class="btn btn-danger" onclick="executeFactoryReset()">
+              <span>Yes, Erase &amp; Reset</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action 3: Exit Safe Boot & Normal Reboot -->
+      <div class="section-card">
+        <div class="reboot-row">
+          <div>
+            <div class="section-title">
+              <svg class="icon text-orange" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <span>3. Exit Safe Boot &amp; Normal Reboot</span>
+            </div>
+            <p class="section-desc" style="margin-bottom:0; margin-top:4px;">
+              Clear temporary safe flags and boot into the normal ESP32 HD Diagnostic Tester application.
+            </p>
+          </div>
+          <button type="button" class="btn btn-primary" id="sb-btn-reboot" onclick="executeNormalReboot()">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            <span>Reboot Normal Mode</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rescue-footer">
+      <span>ESP32 HD Safe Boot Recovery &middot; Force Trigger: GPIO 4 LOW</span>
+      <span class="mono" style="color:#ff6600;font-weight:800;">(c) 2026 Henzulea Daniel email: zulea1@gmail.com &middot; v@@FW_VERSION@@ #@@FW_BUILD@@</span>
+    </div>
+  </div>
+
+  <script>
+    let sbFile = null;
+    let toastTimer = null;
+
+    function showToast(msg, isErr) {
+      const box = document.getElementById('sb-toast');
+      const txt = document.getElementById('sb-toast-msg');
+      txt.innerText = msg;
+      box.className = 'toast-banner ' + (isErr ? 'toast-err' : 'toast-ok');
+      box.style.display = 'flex';
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(hideToast, 4000);
+    }
+
+    function hideToast() {
+      document.getElementById('sb-toast').style.display = 'none';
+    }
+
+    function refreshSafeInfo(manual) {
+      if (manual) {
+        showToast('Refreshing ESP32 Safe Boot hardware & NVS diagnostics...', false);
+      }
+      fetch('/api/safeboot/info')
+        .then(r => r.json())
+        .then(d => {
+          if (d.node_name) {
+            document.getElementById('sb-hdr-node').innerText = d.node_name;
+            document.getElementById('sb-node-badge').innerText = d.node_name;
+          }
+          if (d.ip) {
+            document.getElementById('sb-ip').innerText = d.ip;
+            document.getElementById('sb-hdr-url').innerText = 'http://' + d.ip + '/';
+          }
+          if (d.ssid) {
+            document.getElementById('sb-ssid').innerText = d.ssid;
+          }
+          if (d.nvs_ssid) {
+            document.getElementById('sb-nvs-ssid').innerText = d.nvs_ssid;
+          }
+          if (d.wifi_mode) {
+            const rssiTxt = d.ap_mode ? 'Open AP (No Pass)' : (d.rssi + ' dBm');
+            document.getElementById('sb-wifi-mode').innerText = d.wifi_mode + ' · ' + rssiTxt;
+          }
+          if (d.heap !== undefined) {
+            document.getElementById('sb-heap').innerText = (d.heap / 1024).toFixed(1) + ' KB Free';
+          }
+          if (d.cpu_mhz) {
+            document.getElementById('sb-cpu').innerText = d.cpu_mhz + ' MHz';
+          }
+          if (d.uptime !== undefined) {
+            document.getElementById('sb-uptime').innerText = d.uptime;
+          }
+          if (d.mac) {
+            document.getElementById('sb-mac').innerText = 'MAC: ' + d.mac;
+          }
+          if (d.flash) {
+            const kb = Math.round(d.flash / 1024);
+            const mb = (d.flash / (1024 * 1024)).toFixed(0);
+            document.getElementById('sb-flash').innerText = kb + ' KB (' + mb + ' MB)';
+          }
+          if (d.sketch_size && d.ota_slot_size) {
+            const usedMb = (d.sketch_size / (1024 * 1024)).toFixed(2);
+            const slotMb = (d.ota_slot_size / (1024 * 1024)).toFixed(2);
+            const pct = ((d.sketch_size / d.ota_slot_size) * 100).toFixed(1);
+            const txt = pct + '% (' + usedMb + ' / ' + slotMb + ' MB)';
+            document.getElementById('sb-app-pct').innerText = txt;
+            document.getElementById('sb-app-badge').innerText = 'App Flash: ' + txt;
+          }
+          if (d.can_bitrate) {
+            document.getElementById('sb-can-baud').innerText = d.can_bitrate + ' kbps';
+          }
+          if (d.fw_version && d.fw_build) {
+            const fwStr = d.fw_version + ' (Build #' + d.fw_build + ')';
+            document.getElementById('sb-fw-badge').innerText = 'FW: ' + fwStr;
+            document.getElementById('sb-card-fw').innerText = 'Build: ' + fwStr;
+            document.getElementById('sb-pin-fw').innerText = fwStr;
+          }
+        })
+        .catch(() => {});
+    }
+
+    const fi = document.getElementById('sb-file');
+    fi.addEventListener('change', () => {
+      if (fi.files && fi.files.length > 0) {
+        sbFile = fi.files[0];
+        const kb = (sbFile.size / 1024).toFixed(1);
+        document.getElementById('sb-filename').innerText = sbFile.name + ' (' + kb + ' KB)';
+        showToast('Selected firmware binary: ' + sbFile.name + ' (' + kb + ' KB)', false);
+      }
+    });
+
+    // Full-screen "restarting" overlay (like the main app): message, ~10 s countdown, then refresh. Rebooting
+    // out of Safe Boot returns to NORMAL mode, so the wording says so. Self-contained (this is a separate page).
+    function sbRebootOverlay(message, note) {
+      var ov = document.getElementById('sb-reboot-overlay');
+      if (!ov) { ov = document.createElement('div'); ov.id = 'sb-reboot-overlay'; document.body.appendChild(ov); }
+      ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;' +
+        'justify-content:center;gap:16px;text-align:center;padding:24px;background:rgba(8,10,14,0.94);color:#e8edf2;font-size:15px';
+      ov.innerHTML = '<div style="width:46px;height:46px;border:4px solid rgba(255,255,255,0.18);border-top-color:#ff8a00;' +
+        'border-radius:50%;animation:sb-spin 0.9s linear infinite"></div>' +
+        '<div id="sb-rb-msg" style="font-weight:700;font-size:17px"></div>' +
+        '<div id="sb-rb-cd" style="opacity:0.85"></div>' +
+        '<div id="sb-rb-note" style="opacity:0.8;font-size:12px;max-width:360px;display:none"></div>' +
+        '<div style="opacity:0.6;font-size:12px">The page refreshes automatically.</div>';
+      document.getElementById('sb-rb-msg').textContent = message;
+      if (note) { var n = document.getElementById('sb-rb-note'); n.textContent = note; n.style.display = 'block'; }
+      if (!document.getElementById('sb-spin-kf')) { var st = document.createElement('style'); st.id = 'sb-spin-kf'; st.textContent = '@keyframes sb-spin{to{transform:rotate(360deg)}}'; document.head.appendChild(st); }
+      var left = 10;
+      var cdEl = document.getElementById('sb-rb-cd');
+      function render() { if (cdEl) cdEl.textContent = left > 0 ? ('Refreshing in ' + left + ' s…') : 'Waiting for the device…'; }
+      render();
+      var t = setInterval(function () { left--; render(); if (left <= 0) { clearInterval(t); location.href = '/'; } }, 1000);
+    }
+
+    function startSafeOta() {
+      if (!sbFile) {
+        showToast('Please select a .bin firmware file first before clicking Flash & Reboot!', true);
+        return;
+      }
+      const btn = document.getElementById('sb-btn-flash');
+      btn.disabled = true;
+      document.getElementById('sb-btn-flash-txt').innerText = 'Flashing...';
+      document.getElementById('sb-prog-wrap').style.display = 'block';
+      showToast('Uploading & flashing ' + sbFile.name + '... Do not power off!', false);
+
+      let uploadComplete = false;   // the browser finished sending the whole .bin
+      const fd = new FormData();
+      fd.append('update', sbFile);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/update', true);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          document.getElementById('sb-bar').style.width = pct + '%';
+          document.getElementById('sb-pct').innerText = pct + '%';
+          document.getElementById('sb-status').innerText = 'Writing recovery binary... ' + pct + '%';
+        }
+      };
+      xhr.upload.onload = () => { uploadComplete = true; };   // whole image sent; device now flashes + reboots
+      const flashedOverlay = () => {
+        document.getElementById('sb-bar').style.width = '100%';
+        document.getElementById('sb-pct').innerText = '100%';
+        document.getElementById('sb-status').innerText = 'Flash complete. Restarting into normal mode...';
+        sbRebootOverlay('Firmware flashed - restarting into normal mode…',
+          'The new firmware is booting the normal HD Diagnostic app. If the page does not load, reconnect to your normal Wi-Fi network.');
+      };
+      xhr.onload = () => {
+        if (xhr.status === 200) { flashedOverlay(); return; }
+        // Non-200: show the HTTP status + the real reason the firmware reported (bad image, write/end failed, ...).
+        // A 413 or a non-JSON body means a reverse proxy rejected the upload before it reached the device.
+        let reason = '';
+        try { reason = (JSON.parse(xhr.responseText) || {}).error || ''; } catch (e) {}
+        btn.disabled = false;
+        document.getElementById('sb-btn-flash-txt').innerText = 'Flash & Reboot';
+        const proxyHint = (xhr.status === 413 || (xhr.status >= 400 && !reason))
+          ? ' If going through a reverse proxy, raise its upload limit (nginx: client_max_body_size 16m;).'
+          : '';
+        showToast('OTA flash failed (HTTP ' + (xhr.status || '?') + (reason ? ', ' + reason : '') + ').' + proxyHint, true);
+      };
+      xhr.onerror = () => {
+        // If the whole image was already sent, the device most likely rebooted before replying - that is the
+        // normal success path over the recovery network, so show the restart overlay rather than an error.
+        if (uploadComplete) { flashedOverlay(); return; }
+        btn.disabled = false;
+        document.getElementById('sb-btn-flash-txt').innerText = 'Flash & Reboot';
+        showToast('Network error during OTA upload (before the image finished sending). Try again.', true);
+      };
+      xhr.send(fd);
+    }
+
+    function showResetConfirm() {
+      document.getElementById('btn-show-reset').style.display = 'none';
+      document.getElementById('box-confirm-reset').style.display = 'flex';
+      showToast('Confirm Factory Reset: Click "Yes, Erase & Reset" to wipe NVS storage.', false);
+    }
+
+    function cancelResetConfirm() {
+      document.getElementById('box-confirm-reset').style.display = 'none';
+      document.getElementById('btn-show-reset').style.display = 'inline-flex';
+      showToast('Factory reset cancelled. NVS settings kept intact.', false);
+    }
+
+    function executeFactoryReset() {
+      fetch('/api/safeboot/factory_reset', { method: 'POST' }).catch(() => {});
+      sbRebootOverlay('Factory reset - restarting into normal mode…',
+        'NVS settings were wiped to defaults. The device may come back on its default Wi-Fi network - reconnect if the page does not load.');
+    }
+
+    function executeNormalReboot() {
+      fetch('/api/safeboot/reboot', { method: 'POST' }).catch(() => {});
+      sbRebootOverlay('Restarting into normal mode…',
+        'Leaving Safe Boot and booting the normal HD Diagnostic app. If the page does not load, reconnect to your normal Wi-Fi network.');
+    }
+
+    refreshSafeInfo(false);
+    setInterval(() => refreshSafeInfo(false), 3000);
+  </script>
+</body>
+</html>
